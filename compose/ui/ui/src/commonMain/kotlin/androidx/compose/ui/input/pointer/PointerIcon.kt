@@ -17,13 +17,12 @@
 package androidx.compose.ui.input.pointer
 
 import androidx.compose.runtime.Stable
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.composed
 import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.layout.LayoutCoordinates
-import androidx.compose.ui.layout.boundsInParent
-import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalPointerIconService
 import androidx.compose.ui.platform.debugInspectorInfo
 
@@ -73,10 +72,18 @@ fun Modifier.pointerHoverIcon(icon: PointerIcon, overrideDescendants: Boolean = 
         if (pointerIconService == null) {
             Modifier
         } else {
-            this.pointerInput(icon, overrideDescendants) {
+            val rememberIcon = rememberUpdatedState(icon)
+            val rememberOverrideDescendants = rememberUpdatedState(overrideDescendants)
+
+            // Create and chain a new instance of a dumbModifier for every new icon.
+            // This forces the LayoutNode to requestRelayout, leading to a synthetic event being dispatched
+            // and then handled here in pointerInput below, and then applying the icon to the pointerIconService.
+            val dumbModifier = remember(icon) { object : Modifier.Element {} }
+
+            this.pointerInput(Unit) {
                 awaitPointerEventScope {
                     while (true) {
-                        val pass = if (overrideDescendants)
+                        val pass = if (rememberOverrideDescendants.value)
                             PointerEventPass.Main
                         else
                             PointerEventPass.Initial
@@ -84,10 +91,10 @@ fun Modifier.pointerHoverIcon(icon: PointerIcon, overrideDescendants: Boolean = 
                         val isOutsideRelease = event.type == PointerEventType.Release &&
                             event.changes[0].isOutOfBounds(size, Size.Zero)
                         if (event.type != PointerEventType.Exit && !isOutsideRelease) {
-                            pointerIconService.current = icon
+                            pointerIconService.current = rememberIcon.value
                         }
                     }
                 }
-            }
+            }.then(dumbModifier)
         }
     }
