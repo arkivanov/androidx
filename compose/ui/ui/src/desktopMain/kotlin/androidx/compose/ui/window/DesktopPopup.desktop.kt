@@ -321,7 +321,7 @@ fun rememberComponentRectPositionProvider(
 
 /*
  * TODO: This is a version of Layout not using SAM-converted [MeasurePolicy] interface.
- * Remove me, when SAM conversion for [MeasurePolicy] works again.
+ * Remove me, when SAM conversion for [MeasurePolicy] works again in Kotlin 1.7.0
  * Check with Desktop jvm test DesktopAlertDialogTest.alignedToCenter_inPureWindow
  */
 @Composable private inline fun LayoutWithWorkaround(
