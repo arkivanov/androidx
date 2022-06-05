@@ -30,10 +30,14 @@ import androidx.compose.ui.awt.LocalLayerContainer
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.input.key.KeyEvent
 import androidx.compose.ui.layout.Layout
+import androidx.compose.ui.layout.Measurable
+import androidx.compose.ui.layout.MeasureResult
+import androidx.compose.ui.layout.MeasureScope
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.SkiaBasedOwner
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.setContent
+import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.IntOffset
@@ -151,7 +155,7 @@ private fun PopupLayout(
     var parentBounds by remember { mutableStateOf(IntRect.Zero) }
 
     // getting parent bounds
-    Layout(
+    LayoutWithWorkaround(
         content = {},
         modifier = Modifier.onGloballyPositioned { childCoordinates ->
             val coordinates = childCoordinates.parentCoordinates!!
@@ -178,7 +182,7 @@ private fun PopupLayout(
         )
         scene.attach(owner)
         val composition = owner.setContent(parent = parentComposition) {
-            Layout(
+            LayoutWithWorkaround(
                 content = content,
                 measurePolicy = { measurables, constraints ->
                     val width = constraints.maxWidth
@@ -314,3 +318,14 @@ fun rememberComponentRectPositionProvider(
         }
     }
 }
+
+/*
+ * TODO: This is a version of Layout not using SAM-converted [MeasurePolicy] interface.
+ * Remove me, when SAM conversion for [MeasurePolicy] works again.
+ * Check with Desktop jvm test DesktopAlertDialogTest.alignedToCenter_inPureWindow
+ */
+@Composable private inline fun LayoutWithWorkaround(
+    content: @Composable () -> Unit,
+    modifier: Modifier = Modifier,
+    crossinline measurePolicy: MeasureScope.(List<Measurable>, Constraints) -> MeasureResult
+) = Layout(content, modifier) { x, y -> measurePolicy(x, y) }
